@@ -14,6 +14,6 @@ workflows:
       - name: Recuperer les paquets
         script: flutter pub get
       - name: Construire l APK
-        script: flutter build apk --release
+        script: flutter build apk --debug
     artifacts:
       - build/**/outputs/**/*.apk
