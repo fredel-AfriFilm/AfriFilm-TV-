@@ -10,7 +10,7 @@ workflows:
         script: flutter create --platforms=android --org com.fredel --project-name afrifilm_tv .
       - name: Autoriser Internet
         script: |
-          sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/><application|' android/app/src/main/AndroidManifest.xml
+                    sed -i.bak 's|<application|<uses-permission android:name="android.permission.INTERNET"/><application|' android/app/src/main/AndroidManifest.xml
       - name: Recuperer les paquets
         script: flutter pub get
       - name: Construire l APK
