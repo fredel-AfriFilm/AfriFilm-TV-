@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 void main() => runApp(const AfriFilmApp());
 
 const yellow = Color(0xFFFFC61A);
 
 class Film {
-  final String title, cat;
+  final String title, cat, lang;
   final Color c1, c2;
-  const Film(this.title, this.cat, this.c1, this.c2);
+  final String? videoId;
+  const Film(this.title, this.cat, this.lang, this.c1, this.c2, [this.videoId]);
 }
 
 const films = [
-  Film('La Dernière Dot', 'Nollywood', Color(0xFF0D6B2A), Color(0xFFC98D00)),
-  Film('Abidjan Nights', "Côte d'Ivoire", Color(0xFFB45309), Color(0xFF7F1D1D)),
-  Film('Le Roi de Douala', 'Cameroun', Color(0xFF166534), Color(0xFFA16207)),
-  Film('Mariage à Lagos', 'Nollywood', Color(0xFF7F1D1D), Color(0xFFC98D00)),
-  Film('Cotonou Blues', 'Bénin', Color(0xFF14532D), Color(0xFFB91C1C)),
-  Film('Le Griot', 'Cameroun', Color(0xFF1E3A8A), Color(0xFF15803D)),
-  Film('Maquis Story', "Côte d'Ivoire", Color(0xFF9A3412), Color(0xFF166534)),
-  Film('Accra Hearts', 'Ghana', Color(0xFF854D0E), Color(0xFF991B1B)),
+  Film('Classe à Part', 'Cameroun', 'Français', Color(0xFF166534), Color(0xFFA16207), 'jZM2SsVfmxw'),
+  Film('La Dernière Dot', 'Nollywood', 'Anglais', Color(0xFF0D6B2A), Color(0xFFC98D00)),
+  Film('Abidjan Nights', "Côte d'Ivoire", 'Français', Color(0xFFB45309), Color(0xFF7F1D1D)),
+  Film('Le Roi de Douala', 'Cameroun', 'Français', Color(0xFF14532D), Color(0xFFA16207)),
+  Film('Mariage à Lagos', 'Nollywood', 'Anglais', Color(0xFF7F1D1D), Color(0xFFC98D00)),
+  Film('Cotonou Blues', 'Bénin', 'Français', Color(0xFF14532D), Color(0xFFB91C1C)),
+  Film('Le Griot', 'Cameroun', 'Français', Color(0xFF1E3A8A), Color(0xFF15803D)),
+  Film('Accra Hearts', 'Ghana', 'Anglais', Color(0xFF854D0E), Color(0xFF991B1B)),
 ];
 
 const cats = ['Tous', 'Nollywood', "Côte d'Ivoire", 'Cameroun', 'Bénin', 'Ghana'];
@@ -51,48 +53,9 @@ class _HomePageState extends State<HomePage> {
   String cur = 'Tous';
 
   void open(Film f) {
-    showModalBottomSheet(
-      context: context,
-      useSafeArea: true,
-      backgroundColor: const Color(0xFF111111),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                gradient: LinearGradient(colors: [f.c1, f.c2]),
-              ),
-              child: const Center(child: Icon(Icons.play_arrow, size: 64)),
-            ),
-            const SizedBox(height: 14),
-            Text(f.title,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
-            Text('${f.cat} · Gratuit', style: const TextStyle(color: Colors.grey)),
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Lancer le film'),
-                style: FilledButton.styleFrom(
-                    backgroundColor: yellow, foregroundColor: Colors.black),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Center(
-              child: Text('Espace publicité',
-                  style: TextStyle(color: Colors.grey, fontSize: 12)),
-            ),
-          ],
-        ),
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => WatchPage(film: f)),
     );
   }
 
@@ -107,7 +70,6 @@ class _HomePageState extends State<HomePage> {
             Container(
               height: 184,
               padding: const EdgeInsets.all(10),
-              alignment: Alignment.bottomLeft,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 gradient: LinearGradient(
@@ -115,9 +77,27 @@ class _HomePageState extends State<HomePage> {
                     end: Alignment.bottomRight,
                     colors: [f.c1, f.c2]),
               ),
-              child: Text(f.title,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 16, height: 1.05)),
+              child: Stack(
+                children: [
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(6)),
+                      child: Text(f.lang,
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Text(f.title,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 16, height: 1.05)),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 6),
             Text(f.cat, style: const TextStyle(color: Colors.grey, fontSize: 12)),
@@ -154,6 +134,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final hero = films[0];
     return Scaffold(
       body: SafeArea(
         child: ListView(
@@ -193,7 +174,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             GestureDetector(
-              onTap: () => open(films[0]),
+              onTap: () => open(hero),
               child: Container(
                 margin: const EdgeInsets.fromLTRB(16, 4, 16, 18),
                 height: 260,
@@ -201,14 +182,24 @@ class _HomePageState extends State<HomePage> {
                 alignment: Alignment.bottomLeft,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFF0D6B2A), Color(0xFF7A5A00), Color(0xFF6B0F0B)],
+                    colors: [hero.c1, const Color(0xFF7A5A00), const Color(0xFF6B0F0B)],
                   ),
                 ),
-                child: const Text('La Dernière Dot',
-                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('À la une',
+                        style: TextStyle(
+                            color: yellow, fontWeight: FontWeight.w700, fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text(hero.title,
+                        style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800)),
+                  ],
+                ),
               ),
             ),
             if (cur == 'Tous') ...[
@@ -218,6 +209,88 @@ class _HomePageState extends State<HomePage> {
               row(cur, films.where((f) => f.cat == cur).toList()),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class WatchPage extends StatefulWidget {
+  final Film film;
+  const WatchPage({super.key, required this.film});
+  @override
+  State<WatchPage> createState() => _WatchPageState();
+}
+
+class _WatchPageState extends State<WatchPage> {
+  YoutubePlayerController? c;
+
+  @override
+  void initState() {
+    super.initState();
+    final id = widget.film.videoId;
+    if (id != null) {
+      c = YoutubePlayerController.fromVideoId(
+        videoId: id,
+        autoPlay: true,
+        params: const YoutubePlayerParams(showFullscreenButton: true),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    c?.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final f = widget.film;
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF050505),
+        title: Text(f.title),
+      ),
+      body: ListView(
+        children: [
+          if (c != null)
+            YoutubePlayer(controller: c!, aspectRatio: 16 / 9)
+          else
+            Container(
+              height: 220,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [f.c1, f.c2]),
+              ),
+              child: const Center(
+                child: Text('Bientôt disponible',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(f.title,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Text('${f.cat} · ${f.lang} · Gratuit',
+                    style: const TextStyle(color: Colors.grey)),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFF141414),
+                      borderRadius: BorderRadius.circular(10)),
+                  child: const Text('Espace publicité',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey, fontSize: 12)),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
