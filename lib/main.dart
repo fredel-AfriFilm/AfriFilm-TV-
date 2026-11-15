@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'films.dart';
@@ -6,6 +7,16 @@ import 'films.dart';
 void main() => runApp(const AfriFilmApp());
 
 const yellow = Color(0xFFFFC61A);
+
+Future<Set<String>> loadFavs() async {
+  final p = await SharedPreferences.getInstance();
+  return (p.getStringList('favs') ?? <String>[]).toSet();
+}
+
+Future<void> saveFavs(Set<String> s) async {
+  final p = await SharedPreferences.getInstance();
+  await p.setStringList('favs', s.toList());
+}
 
 class AfriFilmApp extends StatelessWidget {
   const AfriFilmApp({super.key});
@@ -33,12 +44,25 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String cur = 'Tous';
+  Set<String> favs = {};
 
-  void open(Film f) {
-    Navigator.push(
+  @override
+  void initState() {
+    super.initState();
+    refreshFavs();
+  }
+
+  Future<void> refreshFavs() async {
+    final s = await loadFavs();
+    if (mounted) setState(() => favs = s);
+  }
+
+  Future<void> open(Film f) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => WatchPage(film: f)),
     );
+    await refreshFavs();
   }
 
   Widget poster(Film f) {
@@ -117,6 +141,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final hero = films[0];
+    final myList = films.where((f) => favs.contains(f.title)).toList();
     return Scaffold(
       body: SafeArea(
         child: ListView(
@@ -187,6 +212,17 @@ class _HomePageState extends State<HomePage> {
             if (cur == 'Tous') ...[
               row('Populaires en ce moment', films.take(6).toList()),
               row('Nouveautés', films.skip(3).toList()),
+            ] else if (cur == 'Ma liste') ...[
+              if (myList.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'Ta liste est vide. Ouvre un film et touche « Ma liste ».',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                )
+              else
+                row('Ma liste', myList),
             ] else
               row(cur, films.where((f) => f.cat == cur).toList()),
           ],
@@ -205,6 +241,7 @@ class WatchPage extends StatefulWidget {
 
 class _WatchPageState extends State<WatchPage> {
   YoutubePlayerController? c;
+  bool fav = false;
 
   @override
   void initState() {
@@ -216,12 +253,36 @@ class _WatchPageState extends State<WatchPage> {
         flags: const YoutubePlayerFlags(autoPlay: true),
       );
     }
+    loadFavs().then((s) {
+      if (mounted) setState(() => fav = s.contains(widget.film.title));
+    });
   }
 
   @override
   void dispose() {
     c?.dispose();
     super.dispose();
+  }
+
+  Future<void> toggleFav() async {
+    final s = await loadFavs();
+    final t = widget.film.title;
+    if (s.contains(t)) {
+      s.remove(t);
+    } else {
+      s.add(t);
+    }
+    await saveFavs(s);
+    if (mounted) setState(() => fav = s.contains(t));
+  }
+
+  Future<void> shareFilm() async {
+    final text = Uri.encodeComponent(
+        'Regarde « ${widget.film.title} » sur AfriFilm TV !');
+    await launchUrl(
+      Uri.parse('https://wa.me/?text=$text'),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   Future<void> openYoutube() async {
@@ -304,11 +365,61 @@ class _WatchPageState extends State<WatchPage> {
                 Text('${f.cat} · ${f.lang} · Gratuit',
                     style: const TextStyle(color: Colors.grey)),
                 const SizedBox(height: 16),
-                if (f.videoId != null)
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: toggleFav,
+                        icon: Icon(fav ? Icons.favorite : Icons.favorite_border),
+                        label: Text(fav ? 'Dans ma liste' : 'Ma liste'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: shareFilm,
+                        icon: const Icon(Icons.share),
+                        label: const Text('Partager'),
+                      ),
+                    ),
+                  ],
+                ),
+                if (f.videoId != null) ...[
+                  const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: openYoutube,
+                      icon: const Icon(Icons.open_in_new),
+                      label: const Text('Ouvrir dans YouTube'),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                const Text('Résumé',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Text(f.synopsis ?? 'Résumé bientôt disponible.',
+                    style: const TextStyle(color: Colors.grey)),
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFF141414),
+                      borderRadius: BorderRadius.circular(10)),
+                  child: const Text('Espace publicité',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey, fontSize: 12)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}                onPressed: openYoutube,
                       icon: const Icon(Icons.open_in_new),
                       label: const Text('Ouvrir dans YouTube'),
                     ),
