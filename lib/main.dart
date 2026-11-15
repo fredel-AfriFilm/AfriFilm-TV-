@@ -1,5 +1,7 @@
+import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'films.dart';
 
@@ -205,14 +207,31 @@ class WatchPage extends StatefulWidget {
 
 class _WatchPageState extends State<WatchPage> {
   YoutubePlayerController? c;
+  VideoPlayerController? vc;
+  ChewieController? cc;
+  bool failed = false;
 
   @override
   void initState() {
     super.initState();
-    final id = widget.film.videoId;
-    if (id != null) {
+    final f = widget.film;
+    if (f.url != null) {
+      vc = VideoPlayerController.networkUrl(Uri.parse(f.url!));
+      vc!.initialize().then((_) {
+        if (!mounted) return;
+        setState(() {
+          cc = ChewieController(
+            videoPlayerController: vc!,
+            autoPlay: true,
+            aspectRatio: vc!.value.aspectRatio,
+          );
+        });
+      }).catchError((_) {
+        if (mounted) setState(() => failed = true);
+      });
+    } else if (f.videoId != null) {
       c = YoutubePlayerController(
-        initialVideoId: id,
+        initialVideoId: f.videoId!,
         flags: const YoutubePlayerFlags(autoPlay: true),
       );
     }
@@ -220,6 +239,8 @@ class _WatchPageState extends State<WatchPage> {
 
   @override
   void dispose() {
+    cc?.dispose();
+    vc?.dispose();
     c?.dispose();
     super.dispose();
   }
@@ -249,14 +270,55 @@ class _WatchPageState extends State<WatchPage> {
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: openYoutube,
-            icon: const Icon(Icons.play_arrow),
-            label: const Text('Regarder la vidéo'),
-            style: FilledButton.styleFrom(
-                backgroundColor: yellow, foregroundColor: Colors.black),
-          ),
+          if (widget.film.videoId != null)
+            FilledButton.icon(
+              onPressed: openYoutube,
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Regarder la vidéo'),
+              style: FilledButton.styleFrom(
+                  backgroundColor: yellow, foregroundColor: Colors.black),
+            ),
         ],
+      ),
+    );
+  }
+
+  Widget player() {
+    final f = widget.film;
+    if (f.url != null) {
+      if (failed) return errorBox();
+      if (cc == null) {
+        return Container(
+          height: 220,
+          color: Colors.black,
+          child: const Center(child: CircularProgressIndicator()),
+        );
+      }
+      return AspectRatio(
+        aspectRatio: vc!.value.aspectRatio,
+        child: Chewie(controller: cc!),
+      );
+    }
+    if (c != null) {
+      return ValueListenableBuilder<YoutubePlayerValue>(
+        valueListenable: c!,
+        builder: (context, value, _) {
+          if (value.errorCode != 0) return errorBox();
+          return YoutubePlayer(
+            controller: c!,
+            showVideoProgressIndicator: true,
+          );
+        },
+      );
+    }
+    return Container(
+      height: 220,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [f.c1, f.c2]),
+      ),
+      child: const Center(
+        child: Text('Bientôt disponible',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
       ),
     );
   }
@@ -271,28 +333,7 @@ class _WatchPageState extends State<WatchPage> {
       ),
       body: ListView(
         children: [
-          if (c != null)
-            ValueListenableBuilder<YoutubePlayerValue>(
-              valueListenable: c!,
-              builder: (context, value, _) {
-                if (value.errorCode != 0) return errorBox();
-                return YoutubePlayer(
-                  controller: c!,
-                  showVideoProgressIndicator: true,
-                );
-              },
-            )
-          else
-            Container(
-              height: 220,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [f.c1, f.c2]),
-              ),
-              child: const Center(
-                child: Text('Bientôt disponible',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-              ),
-            ),
+          player(),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -309,6 +350,29 @@ class _WatchPageState extends State<WatchPage> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: openYoutube,
+                      icon: const Icon(Icons.open_in_new),
+                      label: const Text('Ouvrir dans YouTube'),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFF141414),
+                      borderRadius: BorderRadius.circular(10)),
+                  child: const Text('Espace publicité',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey, fontSize: 12)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}                onPressed: openYoutube,
                       icon: const Icon(Icons.open_in_new),
                       label: const Text('Ouvrir dans YouTube'),
                     ),
