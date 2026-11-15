@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'films.dart';
 
 void main() => runApp(const AfriFilmApp());
@@ -210,21 +211,26 @@ class _WatchPageState extends State<WatchPage> {
     super.initState();
     final id = widget.film.videoId;
     if (id != null) {
-      c = YoutubePlayerController.fromVideoId(
-        videoId: id,
-        autoPlay: true,
-        params: const YoutubePlayerParams(
-          showFullscreenButton: true,
-          origin: 'https://www.youtube.com',
-        ),
+      c = YoutubePlayerController(
+        initialVideoId: id,
+        flags: const YoutubePlayerFlags(autoPlay: true),
       );
     }
   }
 
   @override
   void dispose() {
-    c?.close();
+    c?.dispose();
     super.dispose();
+  }
+
+  Future<void> openYoutube() async {
+    final id = widget.film.videoId;
+    if (id == null) return;
+    await launchUrl(
+      Uri.parse('https://www.youtube.com/watch?v=$id'),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   @override
@@ -238,7 +244,7 @@ class _WatchPageState extends State<WatchPage> {
       body: ListView(
         children: [
           if (c != null)
-            YoutubePlayer(controller: c!, aspectRatio: 16 / 9)
+            YoutubePlayer(controller: c!, showVideoProgressIndicator: true)
           else
             Container(
               height: 220,
@@ -260,6 +266,16 @@ class _WatchPageState extends State<WatchPage> {
                 const SizedBox(height: 6),
                 Text('${f.cat} · ${f.lang} · Gratuit',
                     style: const TextStyle(color: Colors.grey)),
+                const SizedBox(height: 16),
+                if (f.videoId != null)
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: openYoutube,
+                      icon: const Icon(Icons.open_in_new),
+                      label: const Text('Ouvrir dans YouTube'),
+                    ),
+                  ),
                 const SizedBox(height: 16),
                 Container(
                   width: double.infinity,
