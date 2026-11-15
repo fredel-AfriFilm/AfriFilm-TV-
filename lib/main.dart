@@ -233,6 +233,34 @@ class _WatchPageState extends State<WatchPage> {
     );
   }
 
+  Widget errorBox() {
+    return Container(
+      height: 220,
+      width: double.infinity,
+      color: const Color(0xFF141414),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Cette vidéo ne peut pas se lire ici pour le moment.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: openYoutube,
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Regarder la vidéo'),
+            style: FilledButton.styleFrom(
+                backgroundColor: yellow, foregroundColor: Colors.black),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final f = widget.film;
@@ -244,7 +272,16 @@ class _WatchPageState extends State<WatchPage> {
       body: ListView(
         children: [
           if (c != null)
-            YoutubePlayer(controller: c!, showVideoProgressIndicator: true)
+            ValueListenableBuilder<YoutubePlayerValue>(
+              valueListenable: c!,
+              builder: (context, value, _) {
+                if (value.errorCode != 0) return errorBox();
+                return YoutubePlayer(
+                  controller: c!,
+                  showVideoProgressIndicator: true,
+                );
+              },
+            )
           else
             Container(
               height: 220,
