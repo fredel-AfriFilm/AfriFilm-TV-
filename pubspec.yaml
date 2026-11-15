@@ -11,8 +11,6 @@ dependencies:
     sdk: flutter
   youtube_player_flutter: ^9.1.1
   url_launcher: ^6.2.0
-  video_player: ^2.9.2
-  chewie: ^1.8.5
 
 flutter:
   uses-material-design: true
