@@ -1,29 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'films.dart';
 
 void main() => runApp(const AfriFilmApp());
 
 const yellow = Color(0xFFFFC61A);
-
-class Film {
-  final String title, cat, lang;
-  final Color c1, c2;
-  final String? videoId;
-  const Film(this.title, this.cat, this.lang, this.c1, this.c2, [this.videoId]);
-}
-
-const films = [
-  Film('Papa pour rien', 'Cameroun', 'Français', Color(0xFF166534), Color(0xFFA16207), 't6wCp0pQ26k'),
-  Film('La Dernière Dot', 'Nollywood', 'Anglais', Color(0xFF0D6B2A), Color(0xFFC98D00)),
-  Film('Abidjan Nights', "Côte d'Ivoire", 'Français', Color(0xFFB45309), Color(0xFF7F1D1D)),
-  Film('Le Roi de Douala', 'Cameroun', 'Français', Color(0xFF14532D), Color(0xFFA16207)),
-  Film('Mariage à Lagos', 'Nollywood', 'Anglais', Color(0xFF7F1D1D), Color(0xFFC98D00)),
-  Film('Cotonou Blues', 'Bénin', 'Français', Color(0xFF14532D), Color(0xFFB91C1C)),
-  Film('Le Griot', 'Cameroun', 'Français', Color(0xFF1E3A8A), Color(0xFF15803D)),
-  Film('Accra Hearts', 'Ghana', 'Anglais', Color(0xFF854D0E), Color(0xFF991B1B)),
-];
-
-const cats = ['Tous', 'Nollywood', "Côte d'Ivoire", 'Cameroun', 'Bénin', 'Ghana'];
 
 class AfriFilmApp extends StatelessWidget {
   const AfriFilmApp({super.key});
@@ -232,7 +213,10 @@ class _WatchPageState extends State<WatchPage> {
       c = YoutubePlayerController.fromVideoId(
         videoId: id,
         autoPlay: true,
-        params: const YoutubePlayerParams(showFullscreenButton: true),
+        params: const YoutubePlayerParams(
+          showFullscreenButton: true,
+          origin: 'https://www.youtube.com',
+        ),
       );
     }
   }
