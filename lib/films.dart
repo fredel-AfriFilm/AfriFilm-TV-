@@ -4,7 +4,9 @@ class Film {
   final String title, cat, lang;
   final Color c1, c2;
   final String? videoId;
-  const Film(this.title, this.cat, this.lang, this.c1, this.c2, [this.videoId]);
+  final String? synopsis;
+  const Film(this.title, this.cat, this.lang, this.c1, this.c2,
+      [this.videoId, this.synopsis]);
 }
 
 const films = [
@@ -18,4 +20,12 @@ const films = [
   Film('Cotonou Blues', 'Bénin', 'Français', Color(0xFF14532D), Color(0xFFB91C1C)),
 ];
 
-const cats = ['Tous', 'Nollywood', "Côte d'Ivoire", 'Cameroun', 'Bénin', 'Ghana'];
+const cats = [
+  'Tous',
+  'Ma liste',
+  'Nollywood',
+  "Côte d'Ivoire",
+  'Cameroun',
+  'Bénin',
+  'Ghana',
+];
