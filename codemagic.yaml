@@ -7,13 +7,19 @@ workflows:
       flutter: 3.27.4
     scripts:
       - name: Creer le projet Android
-        script: flutter create --platforms=android --org com.fredel --project-name afrifilm_tv .
-      - name: Autoriser Internet
+        script: flutter create --platforms=android --org com.fredel.v2 --project-name afrifilm_tv .
+      - name: Configurer AndroidManifest proprement
         script: |
-                    sed -i.bak 's|<application|<uses-permission android:name="android.permission.INTERNET"/><application|' android/app/src/main/AndroidManifest.xml
+          python3 -c '
+          p = "android/app/src/main/AndroidManifest.xml"
+          s = open(p).read()
+          s = s.replace("<application", "<uses-permission android:name=\"android.permission.INTERNET\"/>\n    <application android:usesCleartextTraffic=\"true\"", 1)
+          open(p, "w").write(s)
+          '
       - name: Recuperer les paquets
         script: flutter pub get
       - name: Construire l APK
         script: flutter build apk --debug --split-per-abi
     artifacts:
       - build/**/outputs/**/*.apk
+      
