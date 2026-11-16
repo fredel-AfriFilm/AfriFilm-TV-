@@ -250,7 +250,10 @@ class _WatchPageState extends State<WatchPage> {
     if (id != null) {
       c = YoutubePlayerController(
         initialVideoId: id,
-        flags: const YoutubePlayerFlags(autoPlay: true),
+        flags: const YoutubePlayerFlags(
+          autoPlay: true,
+          showLiveFullscreenButton: false,
+        ),
       );
     }
     loadFavs().then((s) {
@@ -322,8 +325,7 @@ class _WatchPageState extends State<WatchPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget page(Widget? player) {
     final f = widget.film;
     return Scaffold(
       appBar: AppBar(
@@ -332,15 +334,12 @@ class _WatchPageState extends State<WatchPage> {
       ),
       body: ListView(
         children: [
-          if (c != null)
+          if (player != null)
             ValueListenableBuilder<YoutubePlayerValue>(
               valueListenable: c!,
               builder: (context, value, _) {
                 if (value.errorCode != 0) return errorBox();
-                return YoutubePlayer(
-                  controller: c!,
-                  showVideoProgressIndicator: true,
-                );
+                return player;
               },
             )
           else
@@ -417,6 +416,18 @@ class _WatchPageState extends State<WatchPage> {
           ),
         ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (c == null) return page(null);
+    return YoutubePlayerBuilder(
+      player: YoutubePlayer(
+        controller: c!,
+        showVideoProgressIndicator: true,
+      ),
+      builder: (context, player) => page(player),
     );
   }
 }
