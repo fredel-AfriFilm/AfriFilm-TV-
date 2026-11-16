@@ -18,6 +18,129 @@ Future<void> saveFavs(Set<String> s) async {
   await p.setStringList('favs', s.toList());
 }
 
+Widget artwork(Film f, {required double height, double radius = 14}) {
+  final fallback = Container(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [f.c1, f.c2],
+      ),
+    ),
+  );
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(radius),
+    child: SizedBox(
+      height: height,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (f.thumb != null)
+            Image.network(
+              f.thumb!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => fallback,
+            )
+          else
+            fallback,
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Colors.black54],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class PosterCard extends StatelessWidget {
+  final Film film;
+  final VoidCallback onTap;
+  const PosterCard({super.key, required this.film, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 126,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 184,
+              child: Stack(
+                children: [
+                  artwork(film, height: 184),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(6)),
+                      child: Text(film.lang,
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(film.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+            Text(film.cat, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class PosterRow extends StatelessWidget {
+  final String title;
+  final List<Film> list;
+  final void Function(Film) onOpen;
+  const PosterRow(
+      {super.key, required this.title, required this.list, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    if (list.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+          child: Text(title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+        ),
+        SizedBox(
+          height: 252,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: list.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (_, i) =>
+                PosterCard(film: list[i], onTap: () => onOpen(list[i])),
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+}
+
 class AfriFilmApp extends StatelessWidget {
   const AfriFilmApp({super.key});
   @override
@@ -45,6 +168,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String cur = 'Tous';
   Set<String> favs = {};
+  bool searching = false;
+  String q = '';
 
   @override
   void initState() {
@@ -65,166 +190,176 @@ class _HomePageState extends State<HomePage> {
     await refreshFavs();
   }
 
-  Widget poster(Film f) {
-    return GestureDetector(
-      onTap: () => open(f),
-      child: SizedBox(
-        width: 126,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget header() {
+    if (searching) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 8, 8),
+        child: Row(
           children: [
-            Container(
-              height: 184,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [f.c1, f.c2]),
+            Expanded(
+              child: TextField(
+                autofocus: true,
+                onChanged: (v) => setState(() => q = v),
+                decoration: const InputDecoration(
+                  hintText: 'Rechercher un film',
+                  border: InputBorder.none,
+                ),
               ),
-              child: Stack(
+            ),
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => setState(() {
+                searching = false;
+                q = '';
+              }),
+            ),
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+      child: Row(
+        children: [
+          const Icon(Icons.movie, color: yellow, size: 32),
+          const SizedBox(width: 10),
+          const Text('AfriFilm TV',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => setState(() => searching = true),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget chips() {
+    return SizedBox(
+      height: 50,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          for (final c in cats)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(c),
+                selected: cur == c,
+                selectedColor: yellow,
+                labelStyle:
+                    TextStyle(color: cur == c ? Colors.black : Colors.white),
+                onSelected: (_) => setState(() => cur = c),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget hero(Film h) {
+    return GestureDetector(
+      onTap: () => open(h),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 4, 16, 18),
+        height: 260,
+        child: Stack(
+          children: [
+            artwork(h, height: 260, radius: 20),
+            Positioned(
+              left: 18,
+              right: 18,
+              bottom: 18,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(6)),
-                      child: Text(f.lang,
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Text(f.title,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w800, fontSize: 16, height: 1.05)),
-                  ),
+                  const Text('À la une',
+                      style: TextStyle(
+                          color: yellow, fontWeight: FontWeight.w700, fontSize: 12)),
+                  const SizedBox(height: 4),
+                  Text(h.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
                 ],
               ),
             ),
-            const SizedBox(height: 6),
-            Text(f.cat, style: const TextStyle(color: Colors.grey, fontSize: 12)),
           ],
         ),
       ),
     );
   }
 
-  Widget row(String t, List<Film> l) {
-    if (l.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-          child: Text(t,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-        ),
-        SizedBox(
-          height: 224,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: l.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, i) => poster(l[i]),
+  List<Widget> content() {
+    final real = films.where((f) => f.cat != 'Test').toList();
+    final h = real.isEmpty ? films[0] : real[0];
+    final myList = films.where((f) => favs.contains(f.title)).toList();
+    final out = <Widget>[hero(h)];
+    if (cur == 'Tous') {
+      out.add(PosterRow(
+          title: 'Populaires en ce moment',
+          list: real.take(6).toList(),
+          onOpen: open));
+      out.add(PosterRow(
+          title: 'Nouveautés',
+          list: real.reversed.take(6).toList(),
+          onOpen: open));
+    } else if (cur == 'Ma liste') {
+      if (myList.isEmpty) {
+        out.add(const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text(
+            'Ta liste est vide. Ouvre un film et touche « Ma liste ».',
+            style: TextStyle(color: Colors.grey),
           ),
-        ),
-        const SizedBox(height: 20),
-      ],
+        ));
+      } else {
+        out.add(PosterRow(title: 'Ma liste', list: myList, onOpen: open));
+      }
+    } else {
+      out.add(PosterRow(
+          title: cur,
+          list: films.where((f) => f.cat == cur).toList(),
+          onOpen: open));
+    }
+    return out;
+  }
+
+  Widget searchResults() {
+    final query = q.trim().toLowerCase();
+    final results =
+        films.where((f) => f.title.toLowerCase().contains(query)).toList();
+    if (results.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text('Aucun film trouvé.', style: TextStyle(color: Colors.grey)),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 16,
+        children: [
+          for (final f in results) PosterCard(film: f, onTap: () => open(f)),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final hero = films[0];
-    final myList = films.where((f) => favs.contains(f.title)).toList();
+    final showResults = searching && q.trim().isNotEmpty;
     return Scaffold(
       body: SafeArea(
         child: ListView(
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 14, 16, 8),
-              child: Row(
-                children: [
-                  Icon(Icons.movie, color: yellow, size: 32),
-                  SizedBox(width: 10),
-                  Text('AfriFilm TV',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                  Spacer(),
-                  Icon(Icons.search),
-                ],
-              ),
-            ),
-            SizedBox(
-              height: 50,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  for (final c in cats)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(c),
-                        selected: cur == c,
-                        selectedColor: yellow,
-                        labelStyle: TextStyle(
-                            color: cur == c ? Colors.black : Colors.white),
-                        onSelected: (_) => setState(() => cur = c),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            GestureDetector(
-              onTap: () => open(hero),
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(16, 4, 16, 18),
-                height: 260,
-                padding: const EdgeInsets.all(18),
-                alignment: Alignment.bottomLeft,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [hero.c1, const Color(0xFF7A5A00), const Color(0xFF6B0F0B)],
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('À la une',
-                        style: TextStyle(
-                            color: yellow, fontWeight: FontWeight.w700, fontSize: 12)),
-                    const SizedBox(height: 4),
-                    Text(hero.title,
-                        style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800)),
-                  ],
-                ),
-              ),
-            ),
-            if (cur == 'Tous') ...[
-              row('Populaires en ce moment', films.take(6).toList()),
-              row('Nouveautés', films.skip(3).toList()),
-            ] else if (cur == 'Ma liste') ...[
-              if (myList.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text(
-                    'Ta liste est vide. Ouvre un film et touche « Ma liste ».',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                )
-              else
-                row('Ma liste', myList),
-            ] else
-              row(cur, films.where((f) => f.cat == cur).toList()),
+            header(),
+            if (!searching) chips(),
+            if (showResults) searchResults() else ...content(),
           ],
         ),
       ),
@@ -265,6 +400,20 @@ class _WatchPageState extends State<WatchPage> {
   void dispose() {
     c?.dispose();
     super.dispose();
+  }
+
+  void seek(int sec) {
+    final ctl = c;
+    if (ctl == null) return;
+    final pos = ctl.value.position + Duration(seconds: sec);
+    ctl.seekTo(pos < Duration.zero ? Duration.zero : pos);
+  }
+
+  void openOther(Film x) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => WatchPage(film: x)),
+    );
   }
 
   Future<void> toggleFav() async {
@@ -325,8 +474,45 @@ class _WatchPageState extends State<WatchPage> {
     );
   }
 
+  Widget withSeek(Widget player) {
+    return Stack(
+      children: [
+        player,
+        Positioned.fill(
+          child: Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onDoubleTap: () => seek(-10),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+              const Spacer(flex: 4),
+              Expanded(
+                flex: 3,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onDoubleTap: () => seek(10),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget page(Widget? player) {
     final f = widget.film;
+    final others =
+        films.where((x) => x.title != f.title && x.cat != 'Test').toList();
+    final episodes = f.serie == null
+        ? <Film>[]
+        : (films.where((x) => x.serie == f.serie).toList()
+          ..sort((a, b) => (a.ep ?? 0).compareTo(b.ep ?? 0)));
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF050505),
@@ -339,7 +525,7 @@ class _WatchPageState extends State<WatchPage> {
               valueListenable: c!,
               builder: (context, value, _) {
                 if (value.errorCode != 0) return errorBox();
-                return player;
+                return withSeek(player);
               },
             )
           else
@@ -394,6 +580,22 @@ class _WatchPageState extends State<WatchPage> {
                     ),
                   ),
                 ],
+                if (episodes.length > 1) ...[
+                  const SizedBox(height: 20),
+                  Text('Épisodes · ${f.serie}',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 6),
+                  for (final e in episodes)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      selected: e.title == f.title,
+                      selectedColor: yellow,
+                      leading: Text(e.ep == null ? 'Ép.' : 'Ép. ${e.ep}',
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                      title: Text(e.title),
+                      onTap: () => openOther(e),
+                    ),
+                ],
                 const SizedBox(height: 20),
                 const Text('Résumé',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
@@ -414,6 +616,8 @@ class _WatchPageState extends State<WatchPage> {
               ],
             ),
           ),
+          PosterRow(title: 'Autres films', list: others, onOpen: openOther),
+          const SizedBox(height: 12),
         ],
       ),
     );
