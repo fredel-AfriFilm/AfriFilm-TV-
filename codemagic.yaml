@@ -2,14 +2,15 @@ workflows:
   afrifilm-android:
     name: AfriFilm Android
     max_build_duration: 30
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
     environment:
       flutter: 3.27.4
     scripts:
       - name: Creer le projet Android
-        script: flutter create --platforms=android --org com.fredel.v2 --project-name afrifilm_tv .
+        script: flutter create --platforms=android --org com.fredel --project-name afrifilm_tv .
       - name: Autoriser Internet
-        script: sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/><application android:usesCleartextTraffic="true"|' android/app/src/main/AndroidManifest.xml
+        script: |
+          sed -i.bak 's|<application|<uses-permission android:name="android.permission.INTERNET"/><application|' android/app/src/main/AndroidManifest.xml
       - name: Recuperer les paquets
         script: flutter pub get
       - name: Construire l APK
