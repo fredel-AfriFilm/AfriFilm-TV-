@@ -20,11 +20,17 @@ class Film {
 
 const films = [
   Film('Ma patience', 'Cameroun', 'Français', Color(0xFF166534), Color(0xFFA16207), videoId: 'AB1cbaz5DnQ'),
+  Film('Les blessures de mon âme', 'Cameroun', 'Français', Color(0xFF7F1D1D), Color(0xFFA16207), videoId: 'oIyfgxexiVU'),
   Film('Père Non Déterminé', 'Cameroun', 'Français', Color(0xFF14532D), Color(0xFFB91C1C), videoId: 'l3N6TsIn_xg'),
+  Film('La justice du karma', 'Cameroun', 'Français', Color(0xFF1E3A8A), Color(0xFFC98D00), videoId: 'B6Rm9485Ov0'),
   Film('Addiction scandaleuse', 'Cameroun', 'Français', Color(0xFF7F1D1D), Color(0xFFC98D00), videoId: '-FwSkwj3GpY'),
+  Film('Graines de monstre', 'Cameroun', 'Français', Color(0xFF115E59), Color(0xFF7F1D1D), videoId: 'CdZSOnmFKh8'),
   Film('Envie mortelle', 'Cameroun', 'Français', Color(0xFF1E3A8A), Color(0xFF15803D), videoId: 'X34sl0pKmIo'),
+  Film('Femme sadique', 'Cameroun', 'Français', Color(0xFF854D0E), Color(0xFF991B1B), videoId: 's8gO5Cm8XjA'),
   Film("Le cœur d'Adzai", 'Cameroun', 'Français', Color(0xFF854D0E), Color(0xFF991B1B), videoId: 'qyNFg7m1phI'),
+  Film('Cauchemar vivant', 'Cameroun', 'Français', Color(0xFF14532D), Color(0xFF1E3A8A), videoId: 'h9J812Xh2A0'),
   Film('Clémence', 'Cameroun', 'Français', Color(0xFF115E59), Color(0xFFA16207), videoId: 'YVFbbXPK5Tg'),
+  Film('Sans cœur', 'Cameroun', 'Français', Color(0xFF7F1D1D), Color(0xFF14532D), videoId: '-SaEViDgvE0'),
   Film('Papa pour rien', 'Cameroun', 'Français', Color(0xFF166534), Color(0xFFA16207), videoId: 't6wCp0pQ26k'),
   Film('Classe à Part', 'Cameroun', 'Français', Color(0xFF14532D), Color(0xFFA16207), videoId: 'jZM2SsVfmxw'),
   Film('La Dernière Dot', 'Nollywood', 'Anglais', Color(0xFF0D6B2A), Color(0xFFC98D00)),
