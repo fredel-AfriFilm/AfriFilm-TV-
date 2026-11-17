@@ -377,6 +377,7 @@ class WatchPage extends StatefulWidget {
 class _WatchPageState extends State<WatchPage> {
   YoutubePlayerController? c;
   bool fav = false;
+  PlayerState? lastState;
 
   @override
   void initState() {
@@ -391,14 +392,30 @@ class _WatchPageState extends State<WatchPage> {
           showLiveFullscreenButton: false,
         ),
       );
+      c!.addListener(killCaptions);
     }
     loadFavs().then((s) {
       if (mounted) setState(() => fav = s.contains(widget.film.title));
     });
   }
 
+  void killCaptions() {
+    final ctl = c;
+    if (ctl == null) return;
+    final st = ctl.value.playerState;
+    if (st == lastState) return;
+    lastState = st;
+    if (ctl.value.isReady && st == PlayerState.playing) {
+      ctl.value.webViewController?.evaluateJavascript(
+        source:
+            "try{player.unloadModule('captions');player.unloadModule('cc');}catch(e){}",
+      );
+    }
+  }
+
   @override
   void dispose() {
+    c?.removeListener(killCaptions);
     c?.dispose();
     super.dispose();
   }
