@@ -486,20 +486,29 @@ class _WatchPageState extends State<WatchPage> {
     );
   }
 
-  Widget withSeek(Widget player) {
+  Widget withSeek(Widget player, bool visible) {
     return Stack(
       children: [
         player,
         Positioned.fill(
-          child: Align(
-            alignment: const Alignment(-0.55, -0.1),
-            child: seekButton(Icons.replay_10, -10),
-          ),
-        ),
-        Positioned.fill(
-          child: Align(
-            alignment: const Alignment(0.55, -0.1),
-            child: seekButton(Icons.forward_10, 10),
+          child: IgnorePointer(
+            ignoring: !visible,
+            child: AnimatedOpacity(
+              opacity: visible ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Stack(
+                children: [
+                  Align(
+                    alignment: const Alignment(-0.55, -0.1),
+                    child: seekButton(Icons.replay_10, -10),
+                  ),
+                  Align(
+                    alignment: const Alignment(0.55, -0.1),
+                    child: seekButton(Icons.forward_10, 10),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
@@ -526,7 +535,7 @@ class _WatchPageState extends State<WatchPage> {
               valueListenable: c!,
               builder: (context, value, _) {
                 if (value.errorCode != 0) return errorBox();
-                return withSeek(player);
+                return withSeek(player, value.isControlsVisible);
               },
             )
           else
