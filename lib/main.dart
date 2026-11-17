@@ -387,6 +387,7 @@ class _WatchPageState extends State<WatchPage> {
         initialVideoId: id,
         flags: const YoutubePlayerFlags(
           autoPlay: true,
+          enableCaption: false,
           showLiveFullscreenButton: false,
         ),
       );
@@ -474,31 +475,31 @@ class _WatchPageState extends State<WatchPage> {
     );
   }
 
+  Widget seekButton(IconData icon, int sec) {
+    return Material(
+      color: Colors.black38,
+      shape: const CircleBorder(),
+      child: IconButton(
+        icon: Icon(icon, color: Colors.white, size: 32),
+        onPressed: () => seek(sec),
+      ),
+    );
+  }
+
   Widget withSeek(Widget player) {
     return Stack(
       children: [
         player,
         Positioned.fill(
-          child: Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onDoubleTap: () => seek(-10),
-                  child: const SizedBox.expand(),
-                ),
-              ),
-              const Spacer(flex: 4),
-              Expanded(
-                flex: 3,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onDoubleTap: () => seek(10),
-                  child: const SizedBox.expand(),
-                ),
-              ),
-            ],
+          child: Align(
+            alignment: const Alignment(-0.55, -0.1),
+            child: seekButton(Icons.replay_10, -10),
+          ),
+        ),
+        Positioned.fill(
+          child: Align(
+            alignment: const Alignment(0.55, -0.1),
+            child: seekButton(Icons.forward_10, 10),
           ),
         ),
       ],
