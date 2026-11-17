@@ -19,7 +19,6 @@ class Film {
 // (puis ep: 2, ep: 3...). Les autres épisodes s'affichent sous la vidéo.
 
 const films = [
-  Film('Test lecteur', 'Test', 'Anglais', Color(0xFF1E3A8A), Color(0xFF15803D), videoId: 'dQw4w9WgXcQ'),
   Film('Ma patience', 'Cameroun', 'Français', Color(0xFF166534), Color(0xFFA16207), videoId: 'AB1cbaz5DnQ'),
   Film('Père Non Déterminé', 'Cameroun', 'Français', Color(0xFF14532D), Color(0xFFB91C1C), videoId: 'l3N6TsIn_xg'),
   Film('Addiction scandaleuse', 'Cameroun', 'Français', Color(0xFF7F1D1D), Color(0xFFC98D00), videoId: '-FwSkwj3GpY'),
