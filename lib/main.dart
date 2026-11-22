@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+         import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -16,6 +16,23 @@ Future<Set<String>> loadFavs() async {
 Future<void> saveFavs(Set<String> s) async {
   final p = await SharedPreferences.getInstance();
   await p.setStringList('favs', s.toList());
+}
+
+String fmtDuree(int m) {
+  final h = m ~/ 60;
+  final r = m % 60;
+  if (h == 0) return '$m min';
+  if (r == 0) return '$h h';
+  return '$h h ${r.toString().padLeft(2, '0')}';
+}
+
+String fmtMo(double mo) {
+  if (mo >= 1000) {
+    final go = mo / 1000;
+    return '${go.toStringAsFixed(1).replaceAll('.', ',')} Go';
+  }
+  final r = (mo / 10).round() * 10;
+  return '$r Mo';
 }
 
 Widget artwork(Film f, {required double height, double radius = 14}) {
@@ -532,6 +549,49 @@ class _WatchPageState extends State<WatchPage> {
     );
   }
 
+  Widget dataBox(Film f) {
+    final m = f.minutes;
+    if (m == null) return const SizedBox.shrink();
+    Widget line(String label, double ratePerMin) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(label, style: const TextStyle(color: Colors.grey)),
+            ),
+            Text('≈ ${fmtMo(m * ratePerMin)}',
+                style: const TextStyle(fontWeight: FontWeight.w700)),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+          color: const Color(0xFF141414),
+          borderRadius: BorderRadius.circular(10)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Internet utilisé · durée ${fmtDuree(m)}',
+              style: const TextStyle(fontWeight: FontWeight.w800)),
+          line('Qualité basse (144p)', 70 / 60),
+          line('Qualité normale (360p)', 5),
+          line('Qualité HD (720p)', 1000 / 60),
+          const SizedBox(height: 8),
+          const Text(
+            'Estimation : la taille réelle dépend de la qualité choisie par YouTube.',
+            style: TextStyle(color: Colors.grey, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget page(Widget? player) {
     final f = widget.film;
     final others =
@@ -576,6 +636,7 @@ class _WatchPageState extends State<WatchPage> {
                 const SizedBox(height: 6),
                 Text('${f.cat} · ${f.lang} · Gratuit',
                     style: const TextStyle(color: Colors.grey)),
+                dataBox(f),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -614,51 +675,4 @@ class _WatchPageState extends State<WatchPage> {
                   const SizedBox(height: 6),
                   for (final e in episodes)
                     ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      selected: e.title == f.title,
-                      selectedColor: yellow,
-                      leading: Text(e.ep == null ? 'Ép.' : 'Ép. ${e.ep}',
-                          style: const TextStyle(fontWeight: FontWeight.w700)),
-                      title: Text(e.title),
-                      onTap: () => openOther(e),
-                    ),
-                ],
-                const SizedBox(height: 20),
-                const Text('Résumé',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 6),
-                Text(f.synopsis ?? 'Résumé bientôt disponible.',
-                    style: const TextStyle(color: Colors.grey)),
-                const SizedBox(height: 20),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                      color: const Color(0xFF141414),
-                      borderRadius: BorderRadius.circular(10)),
-                  child: const Text('Espace publicité',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey, fontSize: 12)),
-                ),
-              ],
-            ),
-          ),
-          PosterRow(title: 'Autres films', list: others, onOpen: openOther),
-          const SizedBox(height: 12),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (c == null) return page(null);
-    return YoutubePlayerBuilder(
-      player: YoutubePlayer(
-        controller: c!,
-        showVideoProgressIndicator: true,
-      ),
-      builder: (context, player) => page(player),
-    );
-  }
-}
+                    
