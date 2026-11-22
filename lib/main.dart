@@ -1,4 +1,4 @@
-         import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -675,4 +675,51 @@ class _WatchPageState extends State<WatchPage> {
                   const SizedBox(height: 6),
                   for (final e in episodes)
                     ListTile(
-                    
+                      contentPadding: EdgeInsets.zero,
+                      selected: e.title == f.title,
+                      selectedColor: yellow,
+                      leading: Text(e.ep == null ? 'Ép.' : 'Ép. ${e.ep}',
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                      title: Text(e.title),
+                      onTap: () => openOther(e),
+                    ),
+                ],
+                const SizedBox(height: 20),
+                const Text('Résumé',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Text(f.synopsis ?? 'Résumé bientôt disponible.',
+                    style: const TextStyle(color: Colors.grey)),
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFF141414),
+                      borderRadius: BorderRadius.circular(10)),
+                  child: const Text('Espace publicité',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey, fontSize: 12)),
+                ),
+              ],
+            ),
+          ),
+          PosterRow(title: 'Autres films', list: others, onOpen: openOther),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (c == null) return page(null);
+    return YoutubePlayerBuilder(
+      player: YoutubePlayer(
+        controller: c!,
+        showVideoProgressIndicator: true,
+      ),
+      builder: (context, player) => page(player),
+    );
+  }
+}
