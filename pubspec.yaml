@@ -13,5 +13,21 @@ dependencies:
   url_launcher: ^6.2.0
   shared_preferences: ^2.3.2
 
+dev_dependencies:
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.1
+
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/logo.png"
+
+flutter_native_splash:
+  color: "#050505"
+  image: "assets/logo.png"
+  android: true
+  ios: false
+  fullscreen: true
