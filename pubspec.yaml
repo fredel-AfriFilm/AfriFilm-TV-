@@ -19,6 +19,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/logo_blanc.png
 
 flutter_launcher_icons:
   android: true
@@ -27,7 +29,7 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   color: "#050505"
-  image: "assets/logo.png"
+  image: "assets/logo_blanc.png"
   android: true
   ios: false
   fullscreen: true
