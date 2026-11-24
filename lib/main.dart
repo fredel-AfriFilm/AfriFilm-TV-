@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -171,7 +173,80 @@ class AfriFilmApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF050505),
         colorScheme: const ColorScheme.dark(primary: yellow),
       ),
-      home: const HomePage(),
+      home: const SplashPage(),
+    );
+  }
+}
+
+class SplashPage extends StatefulWidget {
+  const SplashPage({super.key});
+  @override
+  State<SplashPage> createState() => _SplashPageState();
+}
+
+class _SplashPageState extends State<SplashPage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController ctrl;
+  Timer? timer;
+
+  @override
+  void initState() {
+    super.initState();
+    ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+    timer = Timer(const Duration(milliseconds: 2400), () {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    ctrl.dispose();
+    super.dispose();
+  }
+
+  Widget dot(int i) {
+    return AnimatedBuilder(
+      animation: ctrl,
+      builder: (context, _) {
+        final t = (ctrl.value + i * 0.2) % 1.0;
+        final o = 0.25 + 0.75 * (t < 0.5 ? t * 2 : (1 - t) * 2);
+        return Container(
+          width: 10,
+          height: 10,
+          margin: const EdgeInsets.symmetric(horizontal: 5),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white.withOpacity(o),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF050505),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset('assets/logo_blanc.png', width: 180),
+            const SizedBox(height: 28),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [dot(0), dot(1), dot(2)],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
