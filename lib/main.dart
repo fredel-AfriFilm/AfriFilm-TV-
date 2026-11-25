@@ -8,7 +8,17 @@ import 'films.dart';
 
 void main() => runApp(const AfriFilmApp());
 
-const yellow = Color(0xFFFFC61A);
+const accent = Color(0xFF7C5CF6);
+const bgColor = Color(0xFF050505);
+const cardBg = Color(0xFF14141A);
+const discoverCats = [
+  'Tous',
+  'Cameroun',
+  'Nollywood',
+  "Côte d'Ivoire",
+  'Bénin',
+  'Ghana',
+];
 
 Future<Set<String>> loadFavs() async {
   final p = await SharedPreferences.getInstance();
@@ -18,6 +28,49 @@ Future<Set<String>> loadFavs() async {
 Future<void> saveFavs(Set<String> s) async {
   final p = await SharedPreferences.getInstance();
   await p.setStringList('favs', s.toList());
+}
+
+class Prog {
+  final String title;
+  final int pos, dur;
+  const Prog(this.title, this.pos, this.dur);
+  double get ratio => dur <= 0 ? 0.0 : (pos / dur).clamp(0.0, 1.0);
+}
+
+Future<List<Prog>> loadProgress() async {
+  final p = await SharedPreferences.getInstance();
+  final raw = p.getStringList('prog') ?? <String>[];
+  final out = <Prog>[];
+  for (final s in raw) {
+    final parts = s.split('|');
+    if (parts.length != 3) continue;
+    final pos = int.tryParse(parts[1]);
+    final dur = int.tryParse(parts[2]);
+    if (pos == null || dur == null) continue;
+    out.add(Prog(parts[0], pos, dur));
+  }
+  return out;
+}
+
+Future<void> saveProgress(String title, int pos, int dur) async {
+  final list = await loadProgress();
+  list.removeWhere((e) => e.title == title);
+  if (pos >= 10 && dur > 0 && pos < dur * 0.95) {
+    list.insert(0, Prog(title, pos, dur));
+  }
+  final p = await SharedPreferences.getInstance();
+  await p.setStringList(
+    'prog',
+    list.take(12).map((e) => '${e.title}|${e.pos}|${e.dur}').toList(),
+  );
+}
+
+Future<int> savedPos(String title) async {
+  final list = await loadProgress();
+  for (final e in list) {
+    if (e.title == title) return e.pos;
+  }
+  return 0;
 }
 
 String fmtDuree(int m) {
@@ -81,7 +134,9 @@ Widget artwork(Film f, {required double height, double radius = 14}) {
 class PosterCard extends StatelessWidget {
   final Film film;
   final VoidCallback onTap;
-  const PosterCard({super.key, required this.film, required this.onTap});
+  final double? ratio;
+  const PosterCard(
+      {super.key, required this.film, required this.onTap, this.ratio});
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +164,21 @@ class PosterCard extends StatelessWidget {
                           style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
                     ),
                   ),
+                  if (ratio != null)
+                    Positioned(
+                      left: 8,
+                      right: 8,
+                      bottom: 8,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: ratio,
+                          minHeight: 4,
+                          backgroundColor: Colors.white24,
+                          color: accent,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -129,8 +199,14 @@ class PosterRow extends StatelessWidget {
   final String title;
   final List<Film> list;
   final void Function(Film) onOpen;
-  const PosterRow(
-      {super.key, required this.title, required this.list, required this.onOpen});
+  final Map<String, double>? ratios;
+  const PosterRow({
+    super.key,
+    required this.title,
+    required this.list,
+    required this.onOpen,
+    this.ratios,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -150,8 +226,11 @@ class PosterRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: list.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, i) =>
-                PosterCard(film: list[i], onTap: () => onOpen(list[i])),
+            itemBuilder: (_, i) => PosterCard(
+              film: list[i],
+              onTap: () => onOpen(list[i]),
+              ratio: ratios?[list[i].title],
+            ),
           ),
         ),
         const SizedBox(height: 20),
@@ -170,182 +249,89 @@ class AfriFilmApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF050505),
-        colorScheme: const ColorScheme.dark(primary: yellow),
+        scaffoldBackgroundColor: bgColor,
+        colorScheme: const ColorScheme.dark(primary: accent),
       ),
-      home: const HomePage(),
+      home: const HomeShell(),
     );
   }
 }
 
-class SplashPage extends StatefulWidget {
-  const SplashPage({super.key});
+class HomeShell extends StatefulWidget {
+  const HomeShell({super.key});
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  State<HomeShell> createState() => _HomeShellState();
 }
 
-class _SplashPageState extends State<SplashPage>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController ctrl;
-  Timer? timer;
-
-  @override
-  void initState() {
-    super.initState();
-    ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
-    timer = Timer(const Duration(milliseconds: 2400), () {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
-    });
-  }
-
-  @override
-  void dispose() {
-    timer?.cancel();
-    ctrl.dispose();
-    super.dispose();
-  }
-
-  Widget dot(int i) {
-    return AnimatedBuilder(
-      animation: ctrl,
-      builder: (context, _) {
-        final t = (ctrl.value + i * 0.2) % 1.0;
-        final o = 0.25 + 0.75 * (t < 0.5 ? t * 2 : (1 - t) * 2);
-        return Container(
-          width: 10,
-          height: 10,
-          margin: const EdgeInsets.symmetric(horizontal: 5),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withOpacity(o),
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF050505),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset('assets/logo_blanc.png', width: 180),
-            const SizedBox(height: 28),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [dot(0), dot(1), dot(2)],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  String cur = 'Tous';
+class _HomeShellState extends State<HomeShell> {
+  int tab = 0;
+  String cat = 'Tous';
   Set<String> favs = {};
-  bool searching = false;
-  String q = '';
+  List<Prog> prog = [];
 
   @override
   void initState() {
     super.initState();
-    refreshFavs();
+    refresh();
   }
 
-  Future<void> refreshFavs() async {
-    final s = await loadFavs();
-    if (mounted) setState(() => favs = s);
+  Future<void> refresh() async {
+    final f = await loadFavs();
+    final p = await loadProgress();
+    if (mounted) {
+      setState(() {
+        favs = f;
+        prog = p;
+      });
+    }
   }
 
   Future<void> open(Film f) async {
+    final pos = await savedPos(f.title);
+    if (!mounted) return;
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => WatchPage(film: f)),
+      MaterialPageRoute(builder: (_) => WatchPage(film: f, startAt: pos)),
     );
-    await refreshFavs();
+    await refresh();
   }
 
-  Widget header() {
-    if (searching) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 10, 8, 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                autofocus: true,
-                onChanged: (v) => setState(() => q = v),
-                decoration: const InputDecoration(
-                  hintText: 'Rechercher un film',
-                  border: InputBorder.none,
+  Future<void> openSearch() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SearchPage(onOpen: open)),
+    );
+  }
+
+  Widget searchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Row(
+        children: [
+          Image.asset('assets/splash_logo.png', width: 42, height: 42),
+          const SizedBox(width: 12),
+          Expanded(
+            child: GestureDetector(
+              onTap: openSearch,
+              child: Container(
+                height: 48,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Row(
+                  children: [
+                    Expanded(
+                      child: Text('Rechercher un film…',
+                          style: TextStyle(color: Colors.grey)),
+                    ),
+                    Icon(Icons.search),
+                  ],
                 ),
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () => setState(() {
-                searching = false;
-                q = '';
-              }),
-            ),
-          ],
-        ),
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
-      child: Row(
-        children: [
-          const Icon(Icons.movie, color: yellow, size: 32),
-          const SizedBox(width: 10),
-          const Text('AfriFilm TV',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-          const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => setState(() => searching = true),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget chips() {
-    return SizedBox(
-      height: 50,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: [
-          for (final c in cats)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(
-                label: Text(c),
-                selected: cur == c,
-                selectedColor: yellow,
-                labelStyle:
-                    TextStyle(color: cur == c ? Colors.black : Colors.white),
-                onSelected: (_) => setState(() => cur = c),
-              ),
-            ),
         ],
       ),
     );
@@ -355,11 +341,11 @@ class _HomePageState extends State<HomePage> {
     return GestureDetector(
       onTap: () => open(h),
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 4, 16, 18),
-        height: 260,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+        height: 220,
         child: Stack(
           children: [
-            artwork(h, height: 260, radius: 20),
+            artwork(h, height: 220, radius: 20),
             Positioned(
               left: 18,
               right: 18,
@@ -370,12 +356,12 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   const Text('À la une',
                       style: TextStyle(
-                          color: yellow, fontWeight: FontWeight.w700, fontSize: 12)),
+                          color: accent, fontWeight: FontWeight.w800, fontSize: 12)),
                   const SizedBox(height: 4),
                   Text(h.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
+                      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
                 ],
               ),
             ),
@@ -385,49 +371,54 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  List<Widget> content() {
+  Widget homeTab() {
     final real = films.where((f) => f.cat != 'Test').toList();
-    final h = real.isEmpty ? films[0] : real[0];
-    final myList = films.where((f) => favs.contains(f.title)).toList();
-    final out = <Widget>[hero(h)];
-    if (cur == 'Tous') {
-      out.add(PosterRow(
-          title: 'Populaires en ce moment',
-          list: real.take(6).toList(),
-          onOpen: open));
-      out.add(PosterRow(
-          title: 'Nouveautés',
-          list: real.reversed.take(6).toList(),
-          onOpen: open));
-    } else if (cur == 'Ma liste') {
-      if (myList.isEmpty) {
-        out.add(const Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
-            'Ta liste est vide. Ouvre un film et touche « Ma liste ».',
-            style: TextStyle(color: Colors.grey),
-          ),
-        ));
-      } else {
-        out.add(PosterRow(title: 'Ma liste', list: myList, onOpen: open));
+    final byTitle = {for (final f in films) f.title: f};
+    final cont = <Film>[];
+    final ratios = <String, double>{};
+    for (final p in prog) {
+      final f = byTitle[p.title];
+      if (f != null) {
+        cont.add(f);
+        ratios[f.title] = p.ratio;
       }
-    } else {
-      out.add(PosterRow(
-          title: cur,
-          list: films.where((f) => f.cat == cur).toList(),
-          onOpen: open));
     }
-    return out;
+    final h = real.isEmpty ? films[0] : real[0];
+    return ListView(
+      children: [
+        searchBar(),
+        if (cont.isNotEmpty)
+          PosterRow(
+            title: 'Continuer de regarder',
+            list: cont,
+            onOpen: open,
+            ratios: ratios,
+          ),
+        hero(h),
+        PosterRow(
+            title: 'Populaires en ce moment',
+            list: real.take(6).toList(),
+            onOpen: open),
+        PosterRow(
+            title: 'Nouveautés',
+            list: real.reversed.take(6).toList(),
+            onOpen: open),
+        for (final c in discoverCats.skip(1))
+          PosterRow(
+            title: c,
+            list: real.where((f) => f.cat == c).toList(),
+            onOpen: open,
+          ),
+      ],
+    );
   }
 
-  Widget searchResults() {
-    final query = q.trim().toLowerCase();
-    final results =
-        films.where((f) => f.title.toLowerCase().contains(query)).toList();
-    if (results.isEmpty) {
+  Widget grid(List<Film> list) {
+    if (list.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(16),
-        child: Text('Aucun film trouvé.', style: TextStyle(color: Colors.grey)),
+        child: Text('Aucun film ici pour le moment.',
+            style: TextStyle(color: Colors.grey)),
       );
     }
     return Padding(
@@ -436,24 +427,150 @@ class _HomePageState extends State<HomePage> {
         spacing: 12,
         runSpacing: 16,
         children: [
-          for (final f in results) PosterCard(film: f, onTap: () => open(f)),
+          for (final f in list) PosterCard(film: f, onTap: () => open(f)),
         ],
       ),
     );
   }
 
+  Widget discoverTab() {
+    final real = films.where((f) => f.cat != 'Test').toList();
+    final list = cat == 'Tous' ? real : real.where((f) => f.cat == cat).toList();
+    return ListView(
+      children: [
+        searchBar(),
+        SizedBox(
+          height: 50,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              for (final c in discoverCats)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(c),
+                    selected: cat == c,
+                    selectedColor: accent,
+                    labelStyle: TextStyle(
+                        color: cat == c ? Colors.white : Colors.white70),
+                    onSelected: (_) => setState(() => cat = c),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        grid(list),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Widget listTab() {
+    final mine = films.where((f) => favs.contains(f.title)).toList();
+    return ListView(
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 18, 16, 12),
+          child: Text('Ma liste',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+        ),
+        if (mine.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Ta liste est vide. Ouvre un film et touche « Ma liste ».',
+              style: TextStyle(color: Colors.grey),
+            ),
+          )
+        else
+          grid(mine),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final showResults = searching && q.trim().isNotEmpty;
+    final pages = [homeTab(), discoverTab(), listTab()];
     return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          children: [
-            header(),
-            if (!searching) chips(),
-            if (showResults) searchResults() else ...content(),
-          ],
+      body: SafeArea(child: pages[tab]),
+      bottomNavigationBar: NavigationBar(
+        backgroundColor: const Color(0xFF0B0B10),
+        indicatorColor: accent.withOpacity(0.35),
+        selectedIndex: tab,
+        onDestinationSelected: (i) => setState(() => tab = i),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Accueil',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.explore_outlined),
+            selectedIcon: Icon(Icons.explore),
+            label: 'Découvrir',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.favorite_border),
+            selectedIcon: Icon(Icons.favorite),
+            label: 'Ma liste',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SearchPage extends StatefulWidget {
+  final void Function(Film) onOpen;
+  const SearchPage({super.key, required this.onOpen});
+  @override
+  State<SearchPage> createState() => _SearchPageState();
+}
+
+class _SearchPageState extends State<SearchPage> {
+  String q = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final query = q.trim().toLowerCase();
+    final results = query.isEmpty
+        ? <Film>[]
+        : films.where((f) => f.title.toLowerCase().contains(query)).toList();
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: bgColor,
+        title: TextField(
+          autofocus: true,
+          onChanged: (v) => setState(() => q = v),
+          decoration: const InputDecoration(
+            hintText: 'Rechercher un film…',
+            border: InputBorder.none,
+          ),
         ),
+      ),
+      body: ListView(
+        children: [
+          if (query.isNotEmpty && results.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Aucun film trouvé.',
+                  style: TextStyle(color: Colors.grey)),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 16,
+              children: [
+                for (final f in results)
+                  PosterCard(film: f, onTap: () => widget.onOpen(f)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -461,7 +578,8 @@ class _HomePageState extends State<HomePage> {
 
 class WatchPage extends StatefulWidget {
   final Film film;
-  const WatchPage({super.key, required this.film});
+  final int startAt;
+  const WatchPage({super.key, required this.film, this.startAt = 0});
   @override
   State<WatchPage> createState() => _WatchPageState();
 }
@@ -470,6 +588,7 @@ class _WatchPageState extends State<WatchPage> {
   YoutubePlayerController? c;
   bool fav = false;
   PlayerState? lastState;
+  Timer? saver;
 
   @override
   void initState() {
@@ -478,17 +597,34 @@ class _WatchPageState extends State<WatchPage> {
     if (id != null) {
       c = YoutubePlayerController(
         initialVideoId: id,
-        flags: const YoutubePlayerFlags(
+        flags: YoutubePlayerFlags(
           autoPlay: true,
           enableCaption: false,
           showLiveFullscreenButton: false,
+          startAt: widget.startAt,
         ),
       );
       c!.addListener(killCaptions);
+      saver = Timer.periodic(const Duration(seconds: 5), (_) {
+        final ctl = c;
+        if (ctl != null && ctl.value.playerState == PlayerState.playing) {
+          saveNow();
+        }
+      });
     }
     loadFavs().then((s) {
       if (mounted) setState(() => fav = s.contains(widget.film.title));
     });
+  }
+
+  void saveNow() {
+    final ctl = c;
+    if (ctl == null) return;
+    final pos = ctl.value.position.inSeconds;
+    var dur = ctl.metadata.duration.inSeconds;
+    if (dur <= 0) dur = (widget.film.minutes ?? 0) * 60;
+    if (dur <= 0) return;
+    saveProgress(widget.film.title, pos, dur);
   }
 
   void killCaptions() {
@@ -507,6 +643,8 @@ class _WatchPageState extends State<WatchPage> {
 
   @override
   void dispose() {
+    saver?.cancel();
+    saveNow();
     c?.removeListener(killCaptions);
     c?.dispose();
     super.dispose();
@@ -519,10 +657,12 @@ class _WatchPageState extends State<WatchPage> {
     ctl.seekTo(pos < Duration.zero ? Duration.zero : pos);
   }
 
-  void openOther(Film x) {
+  Future<void> openOther(Film x) async {
+    final pos = await savedPos(x.title);
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => WatchPage(film: x)),
+      MaterialPageRoute(builder: (_) => WatchPage(film: x, startAt: pos)),
     );
   }
 
@@ -560,7 +700,7 @@ class _WatchPageState extends State<WatchPage> {
     return Container(
       height: 220,
       width: double.infinity,
-      color: const Color(0xFF141414),
+      color: cardBg,
       alignment: Alignment.center,
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -577,7 +717,7 @@ class _WatchPageState extends State<WatchPage> {
             icon: const Icon(Icons.play_arrow),
             label: const Text('Regarder la vidéo'),
             style: FilledButton.styleFrom(
-                backgroundColor: yellow, foregroundColor: Colors.black),
+                backgroundColor: accent, foregroundColor: Colors.white),
           ),
         ],
       ),
@@ -647,8 +787,7 @@ class _WatchPageState extends State<WatchPage> {
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-          color: const Color(0xFF141414),
-          borderRadius: BorderRadius.circular(10)),
+          color: cardBg, borderRadius: BorderRadius.circular(10)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -677,7 +816,7 @@ class _WatchPageState extends State<WatchPage> {
           ..sort((a, b) => (a.ep ?? 0).compareTo(b.ep ?? 0)));
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF050505),
+        backgroundColor: bgColor,
         title: Text(f.title),
       ),
       body: ListView(
@@ -752,7 +891,7 @@ class _WatchPageState extends State<WatchPage> {
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       selected: e.title == f.title,
-                      selectedColor: yellow,
+                      selectedColor: accent,
                       leading: Text(e.ep == null ? 'Ép.' : 'Ép. ${e.ep}',
                           style: const TextStyle(fontWeight: FontWeight.w700)),
                       title: Text(e.title),
@@ -770,8 +909,7 @@ class _WatchPageState extends State<WatchPage> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                      color: const Color(0xFF141414),
-                      borderRadius: BorderRadius.circular(10)),
+                      color: cardBg, borderRadius: BorderRadius.circular(10)),
                   child: const Text('Espace publicité',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey, fontSize: 12)),
@@ -793,6 +931,7 @@ class _WatchPageState extends State<WatchPage> {
       player: YoutubePlayer(
         controller: c!,
         showVideoProgressIndicator: true,
+        progressIndicatorColor: accent,
       ),
       builder: (context, player) => page(player),
     );
