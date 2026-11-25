@@ -25,11 +25,15 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/logo.png"
+  image_path: "assets/icon_logo.png"
 
 flutter_native_splash:
   color: "#050505"
-  image: "assets/logo_blanc.png"
+  image: "assets/splash_logo.png"
   android: true
   ios: false
   fullscreen: true
+
+  android_12:
+    color: "#050505"
+    image: "assets/splash_logo.png"
