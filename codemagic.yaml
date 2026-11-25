@@ -13,7 +13,7 @@ workflows:
           sed -i.bak 's|<application|<uses-permission android:name="android.permission.INTERNET"/><application|' android/app/src/main/AndroidManifest.xml
       - name: Nom de l appli
         script: |
-          sed -i.bak 's|android:label="afrifilm_tv"|android:label="AfriFilm TV"|' android/app/src/main/AndroidManifest.xml
+          sed -i.bak 's|android:label="afrifilm_tv"|android:label="AfriFilm"|' android/app/src/main/AndroidManifest.xml
       - name: Recuperer les paquets
         script: flutter pub get
       - name: Icone et ecran de demarrage
