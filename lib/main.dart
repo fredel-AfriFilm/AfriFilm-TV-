@@ -173,7 +173,7 @@ class AfriFilmApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF050505),
         colorScheme: const ColorScheme.dark(primary: yellow),
       ),
-      home: const SplashPage(),
+      home: const HomePage(),
     );
   }
 }
